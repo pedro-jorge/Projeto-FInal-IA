@@ -1,5 +1,6 @@
 import pygame
 import sys
+import numpy as np
 from random import randint 
 
 pygame.init()
@@ -93,7 +94,7 @@ class Game:
         # tupla com largura x altura
         self.screen_size = (self.width, self.height)
         # velocidade visual do jogo
-        self.fps = 10
+        self.fps = 120
         
         # criando a tela efetivamente
         self.screen = pygame.display.set_mode(self.screen_size)
@@ -117,9 +118,11 @@ class Game:
         self.score = 0
         # cria os valores de melhor pontuação dentre todas as rodadas
         self.max_score = 0
+        
+        self.round = 0
     
     
-    def check_game_over(self) -> bool:
+    def check_game_over(self, pos = None) -> bool:
         """
         Verifica se a cobrinha esbarrou em si mesma ou nas bordas da tela.
 
@@ -127,16 +130,19 @@ class Game:
             bool: se é ou não game over
         """
         
+        if pos == None:
+            pos = (self.snake.x, self.snake.y)
+        
         # checa se a cobrinha esbarrou na borda esquerda ou direita
-        if self.snake.x > self.width-BLOCK_SIZE or self.snake.x < 0:
+        if pos[0]> self.width-BLOCK_SIZE or pos[0] < 0:
             return True
     
         # checa se a cobrinha esbarrou na borda de cima ou de baixo
-        if self.snake.y >self.height-BLOCK_SIZE or self.snake.y < 0:
+        if pos[1] >self.height-BLOCK_SIZE or pos[1] < 0:
             return True 
         
         # checa se a cobrinha esbarrou no próprio corpo
-        if [self.snake.x, self.snake.y] in self.snake.body[1:]:
+        if pos in self.snake.body[1:]:
             return True 
         
         return False
@@ -156,7 +162,7 @@ class Game:
         pygame.draw.rect(self.screen, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
 
         # mostra os textos de pontuação
-        text = f"Pontuação: {self.score} --- Pontuação máxima: {self.max_score}"
+        text = f"Pontuação: {self.score} --- Pontuação máxima: {self.max_score} -- Round: {self.round}"
         scores = self.font.render(text, True, WHITE1)
         self.screen.blit(scores, [0, 0])
         
@@ -201,6 +207,57 @@ class Game:
             self.update_ui()
             self.clock.tick(self.fps)
 
+    
+    def run_agent(self, key):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+        
+        directions = [RIGHT, DOWN, LEFT, UP]
+        idx = directions.index(self.direction)
+        
+        if np.array_equal(key, [1, 0, 0]):
+            key = directions[idx]
+        elif np.array_equal(key, [0, 1, 0]):
+            key = directions[(idx+1)%4]
+        else:
+            key = directions[(idx-1)%4]
+        
+        self.direction = key 
+        self.snake.move(self.direction)
+        reward = -1
+        game_over = False
+        
+        # if self.score > 50:
+        #     self.fps = 15
+        
+        if self.check_game_over():
+            self.snake = Snake(self.width/2, self.height/2)
+            self.score = 0
+            self.round += 1
+            reward -= 10
+            game_over = True
+            
+            return reward, game_over, self.score
+        
+        if self.snake.x == self.food.x and self.snake.y == self.food.y:
+            self.food.update()
+            self.score += 1
+            
+            if self.score > self.max_score:
+                self.max_score = self.score 
+            
+            reward = 15
+        
+        else:
+            self.snake.body.pop()
+        
+        self.update_ui()
+        self.clock.tick(self.fps)
+        
+        return reward, game_over, self.score
+        
+        
 
 if __name__ == "__main__":
     game = Game()
