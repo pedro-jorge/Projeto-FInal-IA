@@ -1,7 +1,11 @@
+# Arquivo que contém toda a lógica do jogo
+
 import pygame
 import sys
 import numpy as np
+
 from random import randint 
+from typing import *
 
 pygame.init()
 
@@ -94,7 +98,7 @@ class Game:
         # tupla com largura x altura
         self.screen_size = (self.width, self.height)
         # velocidade visual do jogo
-        self.fps = 120
+        self.fps = 1000
         
         # criando a tela efetivamente
         self.screen = pygame.display.set_mode(self.screen_size)
@@ -131,7 +135,7 @@ class Game:
         """
         
         if pos == None:
-            pos = (self.snake.x, self.snake.y)
+            pos = [self.snake.x, self.snake.y]
         
         # checa se a cobrinha esbarrou na borda esquerda ou direita
         if pos[0]> self.width-BLOCK_SIZE or pos[0] < 0:
@@ -170,7 +174,7 @@ class Game:
 
         
     def run(self):
-        """Roda o jogo efetivamente."""
+        """Roda o jogo para o ser humano."""
         while True:
             for event in pygame.event.get():
                 # verifica se o usuário está clicando no X para fechar
@@ -208,11 +212,22 @@ class Game:
             self.clock.tick(self.fps)
 
     
-    def run_agent(self, key):
+    def run_agent(self, key: np.ndarray) -> Tuple[int, bool, int]:
+        """Roda o jogo para a máquina.
+
+        Args:
+            key (np.ndarray): um array que representa o movimento escolhido pela máquina
+
+        Returns:
+            Tuple[int, bool, int]: (int com a recompensa ou punição pelo movimento feito, bool dizendo se é game over, int com a pontuação atual)
+        """
+        
+        # verifica se o usuário está clicando no X para fechar
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
         
+        # transforma o array numérico da máquina em um comando de direção do jogo
         directions = [RIGHT, DOWN, LEFT, UP]
         idx = directions.index(self.direction)
         
@@ -223,35 +238,56 @@ class Game:
         else:
             key = directions[(idx-1)%4]
         
+        # move a cobrinha de acordo com a direção 
         self.direction = key 
         self.snake.move(self.direction)
-        reward = -1
+        
+        # declara uma recompensa ou punição padrão
+        # no caso em que a cobrinha se mexeu mas não comeu a comida nem morreu
+        reward = 0
         game_over = False
         
-        # if self.score > 50:
+        # quando uma certa pontuação é alcançada
+        # muda o fps para visualizarmos melhor a cobrinha se mexendo
+        # if self.score >= self.max_score:
         #     self.fps = 15
+        # else:
+        #     self.fps = 120
         
+        # verifica se é game over
         if self.check_game_over():
+            # se sim, reinicia a cobrinha com tamanho 1 no meio da tela
             self.snake = Snake(self.width/2, self.height/2)
+            # reinicia a pontuação
+            score = self.score
             self.score = 0
+            # incrementa a quantidade de vezes em que a máquina está jogando
             self.round += 1
+            # aumenta a punição por ter sido game over
             reward -= 10
             game_over = True
             
-            return reward, game_over, self.score
+            return reward, game_over, score
         
+        # verifica se a cobrinha comeu a comida
         if self.snake.x == self.food.x and self.snake.y == self.food.y:
-            self.food.update()
+            # se sim, gera uma nova posição para a comida
+            while self.snake.x == self.food.x and self.snake.y == self.food.y:
+                self.food.update()
+            # incrementa a pontuação
             self.score += 1
             
+            # atualiza a maior pontuação atingida, se for o caso
             if self.score > self.max_score:
                 self.max_score = self.score 
             
-            reward = 15
+            # declara uma recompensa para o ato de ter comido
+            reward = 10
         
         else:
             self.snake.body.pop()
         
+        # atualiza as informações na tela
         self.update_ui()
         self.clock.tick(self.fps)
         
