@@ -47,10 +47,8 @@ class QNetwork(nn.Module):
             # a primeira camada precisa começar com 11 neurônios
             nn.Linear(11, 256),
             activation(),
-            #nn.Linear(100, 100),
-            #activation(),
-            #nn.Linear(100, 100),
-            #activation(),
+            # nn.Linear(100, 100),
+            # activation(),
             # a última camada precisa terminar com 3 neurônios
             nn.Linear(256, 3),
             #nn.Softmax()

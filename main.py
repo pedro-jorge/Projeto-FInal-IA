@@ -98,7 +98,7 @@ class Game:
         # tupla com largura x altura
         self.screen_size = (self.width, self.height)
         # velocidade visual do jogo
-        self.fps = 1000
+        self.fps = 0
         
         # criando a tela efetivamente
         self.screen = pygame.display.set_mode(self.screen_size)
@@ -123,7 +123,7 @@ class Game:
         # cria os valores de melhor pontuação dentre todas as rodadas
         self.max_score = 0
         
-        self.round = 0
+        self.round = 1
     
     
     def check_game_over(self, pos = None) -> bool:
@@ -193,6 +193,7 @@ class Game:
                 self.snake = Snake(self.width/2, self.height/2)
                 # reinicia a pontuação
                 self.score = 0
+                self.round += 1
                 continue
             
             # verifica se a cobrinha comeu a comida
@@ -231,10 +232,13 @@ class Game:
         directions = [RIGHT, DOWN, LEFT, UP]
         idx = directions.index(self.direction)
         
+        #vira à direita
         if np.array_equal(key, [1, 0, 0]):
             key = directions[idx]
+        # vira à esquerda
         elif np.array_equal(key, [0, 1, 0]):
             key = directions[(idx+1)%4]
+        # continua na mesma direção
         else:
             key = directions[(idx-1)%4]
         
@@ -272,7 +276,7 @@ class Game:
         # verifica se a cobrinha comeu a comida
         if self.snake.x == self.food.x and self.snake.y == self.food.y:
             # se sim, gera uma nova posição para a comida
-            while self.snake.x == self.food.x and self.snake.y == self.food.y:
+            while [self.food.x, self.food.y] in self.snake.body[0:]:
                 self.food.update()
             # incrementa a pontuação
             self.score += 1

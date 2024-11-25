@@ -16,10 +16,10 @@ class Agent:
     def __init__(self):
         # número de rodadas que o agente jogou
         self.n_games = 1
-        self.epsilon = 1/10
-        self.q_matrix = deque(maxlen=100_000)
-        self.batch_size = 1000
+        #self.q_matrix = deque(maxlen=100_000)
+        #self.batch_size = 1000
         
+        self.max_score = 0
         
         self.model = QNetwork()
         # learning rate
@@ -117,7 +117,7 @@ class Agent:
         final_move = [0, 0, 0]
         
         # com probabilidade 1/número de rodadas, o agente escolhe uma ação aleatória
-        if np.random.rand() < 1/self.n_games and self.n_games < 100:
+        if np.random.rand() < 1/self.n_games and self.max_score < 50:
             move = np.random.randint(0, 2)
             final_move[move] = 1
         
@@ -161,7 +161,7 @@ class Agent:
         # capturando a saída da rede (a ação a ser tomada)
         pred = self.model(state)
         target = pred.clone() 
-        
+
         # para cada estado no batch
         for idx in range(len(game_over)):
             # o novo Q-value é a recompensa já existente
@@ -173,7 +173,7 @@ class Agent:
             # atualizamos o target com a nova recompensa
             target[idx][torch.argmax(action[idx]).item()] = Q_new
     
-        # medimos a diferença entre o target, com a nova recompensa calculada 
+        # medimos a diferença entre o target, com a lr recompensa calculada 
         # e a recompensa obtida pela ação tomada
         # e fazemos a backpropagation
         self.optimizer.zero_grad()
@@ -197,15 +197,25 @@ while True:
     
     if is_game_over:
         agent.n_games += 1
-        if score > game.max_score:
-           agent.model.save()
+        if score > agent.max_score:
+            agent.max_score = score
+            #agent.model.save()
             
         scores.append(score)
         mean_scores.append(sum(scores)/agent.n_games)
-    
-    if agent.n_games % 150 == 0:
-        plt.plot(list(range(1, agent.n_games)), scores)
-        plt.plot(list(range(1, agent.n_games)), mean_scores)
-        plt.savefig("a.png")
-        #break
+        
+    if agent.n_games % 200 == 0:
+        plt.xlabel(f"Número de rodadas")
+        plt.ylabel(f"Pontos")
+        
+        plt.plot(list(range(1, agent.n_games)), scores, label="Pontuação")
+        plt.plot(list(range(1, agent.n_games)), mean_scores, label="Pontuação Média")
+        plt.legend()
+        
+        plt.savefig(f"11_relu256_3.png")
+        
+        print(f"Melhor pontuação: {max(scores)}")
+        print(f"Pontuação média: {max(mean_scores)}")
+        print(f"Função de ativação: {agent.model.activation_name}")
+        break
     
