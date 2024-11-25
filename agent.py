@@ -203,8 +203,9 @@ while True:
         scores.append(score)
         mean_scores.append(sum(scores)/agent.n_games)
     
-    if agent.n_games % 50 == 0:
+    if agent.n_games % 150 == 0:
         plt.plot(list(range(1, agent.n_games)), scores)
+        plt.plot(list(range(1, agent.n_games)), mean_scores)
         plt.savefig("a.png")
         #break
     
